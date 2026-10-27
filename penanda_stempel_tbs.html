@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Penanda Stempel TBS — HITUNG TBS SEI SILAU</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#17211b;background:#f3f6f3}
+body{margin:0}
+header{background:#176b3a;color:#fff;padding:16px 18px}
+header h1{font-size:20px;margin:0 0 5px}
+header p{margin:0;font-size:13px;opacity:.95}
+main{max-width:1100px;margin:16px auto;padding:0 12px;display:grid;gap:14px}
+.panel{background:#fff;border:1px solid #dce5dd;border-radius:12px;padding:14px;box-shadow:0 2px 8px #1020100a}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button,.filelabel{border:0;border-radius:8px;padding:10px 13px;font-weight:700;cursor:pointer;background:#176b3a;color:white}
+button.secondary{background:#e6eee8;color:#164b2b}
+button.danger{background:#a83232}
+button:disabled{opacity:.45;cursor:not-allowed}
+input[type=file]{max-width:100%}
+input,select{padding:9px;border:1px solid #bdcbbf;border-radius:7px;font-size:14px;max-width:100%}
+.hint{font-size:13px;color:#4e6052;line-height:1.45}
+#canvasWrap{width:100%;overflow:auto;background:#18221b;border-radius:9px;text-align:center;min-height:150px;display:flex;justify-content:center;align-items:center}
+canvas{display:block;max-width:100%;height:auto;cursor:crosshair;touch-action:pan-y}
+#empty{color:#d7e4d9;padding:35px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid #e3eae4;text-align:left}
+th{background:#f0f5f1}
+.badge{display:inline-block;background:#e7f4e9;color:#18562d;border-radius:999px;padding:4px 8px;font-size:12px}
+.status{font-size:13px;color:#176b3a;font-weight:700}
+footer{font-size:12px;color:#58665b;text-align:center;padding:0 12px 20px}
+@media(min-width:850px){main{grid-template-columns:1.4fr .9fr} .wide{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Penanda Stempel TBS</h1>
+  <p>HITUNG TBS SEI SILAU · Alat penandaan data latihan, bukan pendeteksi AI otomatis</p>
+</header>
+<main>
+<section class="panel">
+  <h2 style="font-size:17px;margin-top:0">1. Pilih foto TBS</h2>
+  <div class="row">
+    <input id="fileInput" type="file" accept="image/*">
+    <button class="secondary" id="resetView" type="button">Atur ulang tampilan</button>
+  </div>
+  <p class="hint">Ketuk/klik lalu tarik kotak mengelilingi setiap stempel yang terlihat. Foto diproses di browser ini; tidak dikirim ke server oleh alat ini.</p>
+  <div id="canvasWrap"><div id="empty">Pilih foto untuk mulai menandai stempel.</div><canvas id="canvas" hidden></canvas></div>
+  <p class="hint">Di HP/tablet: tarik jari dari sudut awal ke sudut akhir untuk membuat kotak. Jika sulit, gunakan zoom browser atau foto yang lebih dekat.</p>
+  <div class="row">
+    <button id="undo" class="secondary" disabled>Batalkan kotak terakhir</button>
+    <button id="clear" class="secondary" disabled>Hapus semua kotak</button>
+  </div>
+</section>
+<section class="panel">
+  <h2 style="font-size:17px;margin-top:0">2. Catat stempel terpilih</h2>
+  <div id="selectedInfo" class="hint">Belum ada kotak yang dipilih. Buat kotak pada stempel di foto.</div>
+  <label for="code" style="display:block;margin:12px 0 5px;font-weight:700">Kode pemanen</label>
+  <input id="code" placeholder="Contoh: A-08" style="width:100%;box-sizing:border-box">
+  <label for="readStatus" style="display:block;margin:12px 0 5px;font-weight:700">Status pembacaan</label>
+  <select id="readStatus" style="width:100%;box-sizing:border-box">
+    <option value="terbaca">Kode terbaca</option>
+    <option value="tidak_terbaca">Stempel terlihat, kode tidak terbaca</option>
+  </select>
+  <div class="row" style="margin-top:12px">
+    <button id="saveMark" disabled>Simpan data kotak</button>
+    <button id="deleteMark" class="danger" disabled>Hapus kotak terpilih</button>
+  </div>
+  <p class="hint">Satu kotak harus mewakili satu stempel pada satu tandan. Jangan tandai tandan tanpa stempel. Jika satu stempel tampak di dua foto, data lintas foto perlu diperiksa agar tidak dihitung ganda.</p>
+  <hr style="border:0;border-top:1px solid #e3eae4;margin:16px 0">
+  <div class="row"><span class="badge" id="countBadge">0 stempel ditandai</span><span class="badge" id="tallyBadge">Total tercatat: 0</span></div>
+  <div id="tally" class="hint" style="margin-top:10px">Rekap akan muncul setelah kotak disimpan.</div>
+</section>
+<section class="panel wide">
+  <h2 style="font-size:17px;margin-top:0">3. Daftar penandaan dan ekspor</h2>
+  <div class="row" style="margin-bottom:10px">
+    <button id="exportJson" disabled>Ekspor JSON (data kotak)</button>
+    <button id="exportCsv" class="secondary" disabled>Ekspor CSV (rekap)</button>
+    <button id="exportImage" class="secondary" disabled>Ekspor foto bertanda</button>
+  </div>
+  <p class="hint">Simpan JSON untuk menyimpan koordinat kotak dan label yang bisa dipakai sebagai data latihan. CSV berisi rekap per kode. Ekspor foto bertanda hanya untuk pemeriksaan visual.</p>
+  <div style="overflow:auto"><table><thead><tr><th>No.</th><th>Kode</th><th>Status</th><th>Kotak (x,y,w,h)</th><th>Aksi</th></tr></thead><tbody id="marksBody"><tr><td colspan="5">Belum ada penandaan.</td></tr></tbody></table></div>
+</section>
+</main>
+<footer>Versi prototipe awal · Tidak tersambung ke AppSheet · Tidak menjalankan AI otomatis</footer>
+<script>
+(() => {
+ const fileInput=document.getElementById('fileInput'), canvas=document.getElementById('canvas'), ctx=canvas.getContext('2d');
+ const empty=document.getElementById('empty'), codeInput=document.getElementById('code'), readStatus=document.getElementById('readStatus');
+ const selectedInfo=document.getElementById('selectedInfo'), saveMark=document.getElementById('saveMark'), deleteMark=document.getElementById('deleteMark');
+ const undo=document.getElementById('undo'), clear=document.getElementById('clear');
+ const marksBody=document.getElementById('marksBody'), countBadge=document.getElementById('countBadge'), tallyBadge=document.getElementById('tallyBadge'), tally=document.getElementById('tally');
+ let img=null, imgName='', marks=[], selected=-1, drag=null, viewScale=1;
+ function fitCanvas(){
+   if(!img)return;
+   const maxW=Math.min(1000,document.getElementById('canvasWrap').clientWidth-4);
+   viewScale=Math.min(1,maxW/img.naturalWidth);
+   canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
+   canvas.style.width=Math.round(img.naturalWidth*viewScale)+'px';
+   canvas.style.height=Math.round(img.naturalHeight*viewScale)+'px';
+   draw();
+ }
+ function draw(){
+   if(!img)return;
+   ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);
+   marks.forEach((m,i)=>{
+     ctx.lineWidth=Math.max(3,canvas.width/500);ctx.strokeStyle=i===selected?'#ffe600':'#ff3b30';
+     ctx.fillStyle=i===selected?'rgba(255,230,0,.18)':'rgba(255,59,48,.12)';
+     ctx.fillRect(m.x,m.y,m.w,m.h);ctx.strokeRect(m.x,m.y,m.w,m.h);
+     const label=(m.code|| (m.status==='tidak_terbaca'?'TIDAK TERBACA':'BELUM DIISI'))+' #'+(i+1);
+     ctx.font='bold '+Math.max(14,canvas.width/70)+'px Arial';
+     const tw=ctx.measureText(label).width, th=Math.max(20,canvas.width/55);
+     ctx.fillStyle=i===selected?'#ffe600':'#ff3b30';ctx.fillRect(m.x,Math.max(0,m.y-th),Math.min(tw+10,canvas.width-m.x),th);
+     ctx.fillStyle='#111';ctx.fillText(label,m.x+4,Math.max(14,m.y-5));
+   });
+   if(drag){
+     ctx.strokeStyle='#00e5ff';ctx.lineWidth=Math.max(3,canvas.width/500);ctx.setLineDash([8,5]);
+     ctx.strokeRect(drag.x,drag.y,drag.w,drag.h);ctx.setLineDash([]);
+   }
+ }
+ function coords(e){
+   const r=canvas.getBoundingClientRect();
+   return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))};
+ }
+ canvas.addEventListener('pointerdown',e=>{if(!img)return;canvas.setPointerCapture(e.pointerId);const p=coords(e);drag={x:p.x,y:p.y,w:0,h:0,startX:p.x,startY:p.y};draw();});
+ canvas.addEventListener('pointermove',e=>{if(!drag)return;const p=coords(e);drag.x=Math.min(drag.startX,p.x);drag.y=Math.min(drag.startY,p.y);drag.w=Math.abs(p.x-drag.startX);drag.h=Math.abs(p.y-drag.startY);draw();});
+ canvas.addEventListener('pointerup',()=>{if(!drag)return; if(drag.w>=5&&drag.h>=5){marks.push({x:Math.round(drag.x),y:Math.round(drag.y),w:Math.round(drag.w),h:Math.round(drag.h),code:'',status:'terbaca'});selected=marks.length-1;syncForm();} drag=null;draw();render();});
+ fileInput.addEventListener('change',()=>{
+   const f=fileInput.files&&fileInput.files[0];if(!f)return;
+   const url=URL.createObjectURL(f);const im=new Image();
+   im.onload=()=>{img=im;imgName=f.name;marks=[];selected=-1;empty.hidden=true;canvas.hidden=false;fitCanvas();render();syncForm();URL.revokeObjectURL(url);};
+   im.onerror=()=>alert('Foto tidak dapat dibuka. Coba pilih gambar JPG atau PNG.');im.src=url;
+ });
+ document.getElementById('resetView').onclick=fitCanvas;
+ function syncForm(){
+   const m=selected>=0?marks[selected]:null;
+   selectedInfo.textContent=m?`Kotak #${selected+1} dipilih · posisi ${m.x}, ${m.y}, lebar ${m.w}, tinggi ${m.h}`:'Belum ada kotak yang dipilih. Buat kotak pada stempel di foto.';
+   codeInput.value=m?.code||'';readStatus.value=m?.status||'terbaca';
+   saveMark.disabled=!m;deleteMark.disabled=!m;
+ }
+ saveMark.onclick=()=>{if(selected<0)return;const m=marks[selected];m.code=readStatus.value==='tidak_terbaca'?'':codeInput.value.trim();m.status=readStatus.value;if(m.status==='terbaca'&&!m.code){alert('Masukkan kode pemanen, atau pilih status kode tidak terbaca.');return;}render();draw();syncForm();};
+ deleteMark.onclick=()=>{if(selected<0)return;marks.splice(selected,1);selected=-1;syncForm();render();draw();};
+ undo.onclick=()=>{if(!marks.length)return;marks.pop();selected=-1;syncForm();render();draw();};
+ clear.onclick=()=>{if(!marks.length)return;if(confirm('Hapus semua kotak penandaan pada foto ini?')){marks=[];selected=-1;syncForm();render();draw();}};
+ function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ function render(){
+   marksBody.innerHTML='';
+   if(!marks.length)marksBody.innerHTML='<tr><td colspan="5">Belum ada penandaan.</td></tr>';
+   marks.forEach((m,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${i+1}</td><td>${esc(m.status==='tidak_terbaca'?'KODE TIDAK TERBACA':(m.code||'Belum diisi'))}</td><td>${m.status==='tidak_terbaca'?'Tidak terbaca':'Terbaca'}</td><td>${m.x}, ${m.y}, ${m.w}, ${m.h}</td><td><button class="secondary" data-select="${i}">Pilih</button></td>`;marksBody.appendChild(tr);});
+   marksBody.querySelectorAll('[data-select]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.select);syncForm();draw();});
+   const counts={};marks.forEach(m=>{const k=m.status==='tidak_terbaca'?'KODE TIDAK TERBACA':(m.code||'BELUM DIISI');counts[k]=(counts[k]||0)+1;});
+   countBadge.textContent=`${marks.length} stempel ditandai`;tallyBadge.textContent=`Total tercatat: ${marks.length}`;
+   tally.innerHTML=Object.keys(counts).length?'<table><thead><tr><th>Kode</th><th>Jumlah</th></tr></thead><tbody>'+Object.entries(counts).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join('')+'</tbody></table>':'Rekap akan muncul setelah kotak disimpan.';
+   undo.disabled=!marks.length;clear.disabled=!marks.length;
+   document.getElementById('exportJson').disabled=!marks.length;document.getElementById('exportCsv').disabled=!marks.length;document.getElementById('exportImage').disabled=!img;
+ }
+ function download(name,content,type){const blob=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+ document.getElementById('exportJson').onclick=()=>download('penandaan_stempel_tbs.json',JSON.stringify({project:'HITUNG TBS SEI SILAU',image_name:imgName,image_width:canvas.width,image_height:canvas.height,marks:marks.map((m,i)=>({id:i+1,...m}))},null,2),'application/json');
+ document.getElementById('exportCsv').onclick=()=>{const counts={};marks.forEach(m=>{const k=m.status==='tidak_terbaca'?'KODE TIDAK TERBACA':(m.code||'BELUM DIISI');counts[k]=(counts[k]||0)+1;});const csv='Kode pemanen,Jumlah TBS\r\n'+Object.entries(counts).map(([k,v])=>'"'+k.replace(/"/g,'""')+'",'+v).join('\r\n');download('rekap_stempel_tbs.csv',csv,'text/csv;charset=utf-8;');};
+ document.getElementById('exportImage').onclick=()=>{if(!img)return;const a=document.createElement('a');a.download='foto_tbs_bertanda.png';a.href=canvas.toDataURL('image/png');a.click();};
+ render();syncForm();
+ window.addEventListener('resize',()=>{if(img)fitCanvas();});
+})();
+</script>
+</body>
+</html>
