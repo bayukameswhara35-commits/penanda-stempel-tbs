@@ -133,7 +133,7 @@ footer{font-size:12px;color:#58665b;text-align:center;padding:0 12px 20px}
    im.onload=()=>{img=im;imgName=f.name;marks=[];selected=-1;empty.hidden=true;canvas.hidden=false;fitCanvas();render();syncForm();URL.revokeObjectURL(url);};
    im.onerror=()=>alert('Foto tidak dapat dibuka. Coba pilih gambar JPG atau PNG.');im.src=url;
  });
- document.getElementById('resetView').onclick=fitCanvas;
+ document.getElemehntById('resetView').onclick=fitCanvas;
  function syncForm(){
    const m=selected>=0?marks[selected]:null;
    selectedInfo.textContent=m?`Kotak #${selected+1} dipilih · posisi ${m.x}, ${m.y}, lebar ${m.w}, tinggi ${m.h}`:'Belum ada kotak yang dipilih. Buat kotak pada stempel di foto.';
@@ -150,7 +150,7 @@ footer{font-size:12px;color:#58665b;text-align:center;padding:0 12px 20px}
    if(!marks.length)marksBody.innerHTML='<tr><td colspan="5">Belum ada penandaan.</td></tr>';
    marks.forEach((m,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${i+1}</td><td>${esc(m.status==='tidak_terbaca'?'KODE TIDAK TERBACA':(m.code||'Belum diisi'))}</td><td>${m.status==='tidak_terbaca'?'Tidak terbaca':'Terbaca'}</td><td>${m.x}, ${m.y}, ${m.w}, ${m.h}</td><td><button class="secondary" data-select="${i}">Pilih</button></td>`;marksBody.appendChild(tr);});
    marksBody.querySelectorAll('[data-select]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.select);syncForm();draw();});
-   const counts={};marks.forEach(m=>{const k=m.status==='tidak_terbaca'?'KODE TIDAK TERBACA':(m.code||'BELUM DIISI');counts[k]=(counts[k]||0)+1;});
+const counts={};marks.forEach(m=>{const k=m.status==='tidak_terbaca'?'KODE TIDAK TERBACA':(m.code||'BELUM DIISI');counts[k]=(counts[k]||0)+1;});
    countBadge.textContent=`${marks.length} stempel ditandai`;tallyBadge.textContent=`Total tercatat: ${marks.length}`;
    tally.innerHTML=Object.keys(counts).length?'<table><thead><tr><th>Kode</th><th>Jumlah</th></tr></thead><tbody>'+Object.entries(counts).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join('')+'</tbody></table>':'Rekap akan muncul setelah kotak disimpan.';
    undo.disabled=!marks.length;clear.disabled=!marks.length;
@@ -164,5 +164,4 @@ footer{font-size:12px;color:#58665b;text-align:center;padding:0 12px 20px}
  window.addEventListener('resize',()=>{if(img)fitCanvas();});
 })();
 </script>
-</body>
-</html>
+<
